@@ -1,4 +1,4 @@
-import pyodbc
+ import pyodbc
 
 # Connect to your database
 connection = pyodbc.connect('DRIVER={YourDriver};SERVER=YourServer;DATABASE=YourDatabase;UID=YourUsername;PWD=YourPassword')
@@ -24,21 +24,19 @@ def get_dataset_definition_ids(dataset_name):
     cursor.close()
     return dataset_definition_ids
 
-# Function to retrieve attributes from the third query
-def get_attributes(dataset_name):
-    sql_query = """
-        SELECT attribute_name, attribute_datatype
-        FROM YourTable3
-        WHERE dataset_definition_id IN (
-            SELECT dataset_definition_id
-            FROM YourTable2
-            WHERE dataset_name = ? AND condition = 'YourCondition'
-        )
-    """
-    cursor = connection.cursor()
-    cursor.execute(sql_query, (dataset_name,))
-    attributes = cursor.fetchall()
-    cursor.close()
+# Function to retrieve attributes for each dataset definition ID
+def get_attributes(dataset_definition_ids):
+    attributes = []
+    for dataset_definition_id in dataset_definition_ids:
+        sql_query = """
+            SELECT attribute_name, attribute_datatype
+            FROM YourTable3
+            WHERE dataset_definition_id = ? 
+        """
+        cursor = connection.cursor()
+        cursor.execute(sql_query, (dataset_definition_id,))
+        attributes.extend(cursor.fetchall())
+        cursor.close()
     return attributes
 
 # Function to retrieve data either from cache or pyodbc
@@ -52,7 +50,7 @@ def get_data(dataset_name):
         # Execute SQL queries
         dataset_names = get_dataset_names()
         dataset_definition_ids = get_dataset_definition_ids(dataset_name)
-        attributes = get_attributes(dataset_name)
+        attributes = get_attributes(dataset_definition_ids)
         
         # Update cache
         dataset_cache[dataset_name] = (dataset_names, dataset_definition_ids, attributes)
